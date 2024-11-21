@@ -8,10 +8,11 @@ categories:
 featured: false
 ---
 
-I have been working on vision in degraded visibility conditions (fog, rain, snow, and nighttime) for a long time (since high school and throughout college). Over the years I have made progress on many facets the problem, and many things in the field of vision has also changed along the way. I will outline some interesting aspects I've encountered and constructed in this post.
+I have been working on vision in degraded visibility conditions (fog, rain, snow, and nighttime) for a long time. Over the years I have made progress on many facets the problem, and many things in the field of vision has also changed along the way. I will outline some interesting aspects I've encountered and constructed in this post.
 
 ## Introduction to Atmospheric Scattering
-To motivate the problem, consider the scenario where you are given a single foggy RGB image and you want to obtain the defogged image. Before we delve into the details, let's first understand the physics of fog. Fog is a weather phenomenon that occurs when the air is saturated with water vapor. The water droplets in the air scatter light (a phenomenon known as Mie scattering), which reduces the contrast and visibility of objects in the scene. Let $$L$$ be the luminance of an object under monochromatic light, $$L_0$$ the luminance at zero distance, $$\beta$$ Mie scattering parameter, and $$\alpha$$ background luminance (airlight). Both Koschmieder (1906) and Duntley (1948) show the scattering of light is modeled by the following equation (Atmospheric Scattering Model):
+
+To motivate the problem, consider the scenario where you are given a single foggy RGB image and you want to obtain the defogged image. Before we delve into the details, let's first understand the physics of fog. Fog is a weather phenomenon that occurs when the air is saturated with water vapor. The water droplets in the air scatter light (a phenomenon known as Mie scattering), which reduces the contrast and visibility of objects in the scene. Let $$L$$ be the luminance of an object under monochromatic light, $$L_0$$ the luminance at zero distance, $$\beta$$ Mie scattering parameter, and $$\alpha$$ background luminance (airlight). Both Koschmieder (1924) [1] and Duntley (1948) [2] show the scattering of light is modeled by the following equation (Atmospheric Scattering Model):
 
 $$L = L_0 e^{-\beta d} + \alpha (1 - e^{-\beta d})$$
 
@@ -45,13 +46,14 @@ where $$I(x)$$ is the observed luminance at pixel $$x$$, $$J(x)$$ is the scene l
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/asm_examples.png" class="img-fluid rounded z-depth-1" max-width="75%" %}
 </div>
 
-Two early works, DehazeNet and Dark Channel Prior, respectively estimated the transmission map directly in an end-to-end manner using a ConvNet and using the Dark Channel Prior. Once we have the transmission map, as in DehazeNet, $$\alpha$$ can be estimated as
+Two early works, DehazeNet [3] and Dark Channel Prior [4], respectively estimated the transmission map directly in an end-to-end manner using a ConvNet and using the Dark Channel Prior. Once we have the transmission map, as in DehazeNet, $$\alpha$$ can be estimated as
 
 $$ \alpha = \max_{y, x \in t(x) < t_0} I(x) $$
 
 where $$t_0$$ is a tunable parameter.
 
 ## Visibility Distance Estimation
+
 While at Nvidia Self Driving, I worked on operational domain verification for autonomous vehicles. One of the tasks was to determine the *meteorological* visibility distance, which influenced the decisions made by the perception stack. We can rearrange the Atmospheric scattering model as follows
 
 $$ \frac{L - \alpha}{\alpha} = \left( \frac{L_{0} - \alpha}{\alpha} \right)e^{-\beta d} $$
@@ -104,9 +106,10 @@ Generated data can also be fed into a general data augmentation engine to produc
 Verification with real data collected by test drives produced approximately reasonable results. In practice, the regressed visibility distance is classified into bins, and the car correspondingly switches autonomy levels based on the designated visibility bin.
 
 ## In the Generative Model Era
+
 The advent of generative diffusion processes opened up new avenues to the data augmentation aspect of the problem, specifically domain translation for autonomous vehicle dataset augmentation. Given a biased dataset of images collected under good driving conditions, can we construct foggy, rainy, snowy, and nighttime counterparts for each image, preserving structure and semantics but changing weather? Previous approaches such as CycleGAN and MUNIT have touched on this problem, but diffusion models provide an unprecented level of realism and control over the generated images.
 
-I constructed a language model-based augmentation agent that performs rejection sampling of InstructPix2Pix. Given an input image, the language model would propose edits that InstructPix2Pix carried out. InstructPix2Pix often fails to generate edits or corrupts the image— edited images below an LPIPs threshold are removed. The agent then proceeds recursively to the accepted edits. Optionally as a final step, the depth map of the input image is estimated and visibility degradation is applied using an atmospheric scattering model. The pipeline is illustrated below
+I constructed a language model-based augmentation agent that performs rejection sampling of InstructPix2Pix [5]. Given an input image, the language model would propose edits that InstructPix2Pix carried out. InstructPix2Pix often fails to generate edits or corrupts the image— edited images below an LPIPs threshold are removed. The agent then proceeds recursively to the accepted edits. Optionally as a final step, the depth map of the input image is estimated and visibility degradation is applied using an atmospheric scattering model. The pipeline is illustrated below
 
 <div style="text-align: center;">
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_agent_pipeline.png" class="img-fluid rounded z-depth-1" max-width="75%" %}
@@ -125,7 +128,7 @@ In general, the performance is decent but there are several issues with Instruct
 
 where the last point is particularly important.
 
-This led me to an alternative method: Schrodinger Bridge-based methods [4], [5], which are well grounded in theory and result in minimal corruption. They only rely on the diffusion model $$p_{\phi}(x)$$ accurately modeling the source and target domain image distributions, compared to being finetuned on edits. In the case of [5] are defined as the diffusion model image distribution conditioned on keywords describing the source and target domains $$p_{\phi}(x, y_{\text{src}})$$, $$p_{\phi}(x, y_{\text{tgt}})$$. Given this setup, [5] provides a translation gradient to optimize the image $$x$$ from the source to the target distribution
+This led me to an alternative method: Schrodinger Bridge-based methods [6], [7], which are well grounded in theory and result in minimal corruption. They only rely on the diffusion model $$p_{\phi}(x)$$ accurately modeling the source and target domain image distributions, compared to being finetuned on edits. In the case of [7] are defined as the diffusion model image distribution conditioned on keywords describing the source and target domains $$p_{\phi}(x, y_{\text{src}})$$, $$p_{\phi}(x, y_{\text{tgt}})$$. Given this setup, [7] provides a translation gradient to optimize the image $$x$$ from the source to the target distribution
 
 $$\nabla_x \mathcal{L}(x) \propto \mathbb{E}_{t, \epsilon}\left[ \epsilon_{\phi}(x_t, y_{\text{src}}, t) - \epsilon_{\text{tgt}}(x_t, y_{\phi}, t) \right]$$
 
@@ -142,3 +145,13 @@ We found that simply following a weighted combination of translation gradients c
 </div>
 
 And so far that's it. Thanks for reading and stay tuned for more updates on vision in degraded visibility conditions!
+
+## References
+
+[1] Koschmieder, H., Theorie der horizontalen Sichtweite. Beitr. Phys. Atmos. 12, 33-58 (1906) \\
+[2] Duntley, S. Q., The visibility of distant objects. J Opt Soc Am. (1948) \\
+[3] DehazeNet: An End-to-End System for Single Image Haze Removal, 2016 \\
+[4] Single Image Haze Removal Using Dark Channel Prior, 2009 \\
+[5] InstructPix2Pix: Learning to Follow Image Editing Instructions, 2022 \\
+[6] Dual Diffusion Implicit Bridges for Image-to-Image Translation, 2023 \\
+[7] Rethinking Score Distillation as a Bridge Between Image Distributions, 2024
