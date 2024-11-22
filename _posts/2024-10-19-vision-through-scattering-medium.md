@@ -19,13 +19,13 @@ $$L = L_0 e^{-\beta d} + \alpha (1 - e^{-\beta d})$$
 where $$d$$ is the distance between the observer and the object. This model is applicable to visibility degredation through a scattering medium in general, and not limited to fog.
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/asm.png" class="img-fluid rounded z-depth-1" max-width="75%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/asm.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Atmospheric Scattering Model" %}
 </div>
 
 A short note, humans are trichromatic and have cones for short, medium, and long wavelengths that correspond to our perception of blue, green, and red primary colors (1931 CIE color matching). The luminance of each channel, $$y$$ is computed by integrated the respective color matching function against the irradiance, $$E$$, over all wavelengths.
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/cie.png" class="img-fluid rounded z-depth-1" max-width="75%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/cie.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Human sensativity to different wavelengths for each cone." %}
 </div>
 
 Without scattering, the luminance of each channel is given by
@@ -43,7 +43,7 @@ $$I(x) = J(x) t(x) + \alpha(1 - t(x))$$
 where $$I(x)$$ is the observed luminance at pixel $$x$$, $$J(x)$$ is the scene luminance, $$t(x) = e^{-\beta d(x)}$$ is the transmission map, and $$d(x)$$ the depth map. With some algebra, we can see to estimate the scene radiance $$J(x)$$ we need to estimate the transmission map $$t(x)$$.
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/asm_examples.png" class="img-fluid rounded z-depth-1" max-width="75%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/asm_examples.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Visibility Degredation for varying levels of parameters. Figure credits to Neal Bayya" %}
 </div>
 
 Two early works, DehazeNet [3] and Dark Channel Prior [4], respectively estimated the transmission map directly in an end-to-end manner using a ConvNet and using the Dark Channel Prior. Once we have the transmission map, as in DehazeNet, $$\alpha$$ can be estimated as
@@ -71,19 +71,19 @@ It is important to note visibility distance degredation is a global effect. This
 If the only condition considered was fog, the solution would be straightforwards. In the real world, however, degraded visibility is usually observed with other weather conditions such as rain, sleet, or snow, as shown below
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/visibility_conditions.png" class="img-fluid rounded z-depth-1" max-width="75%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/visibility_conditions.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Visibility can be influenced globally or locally." %}
 </div>
 
 The team decided to generate data using DriveSim, Nvidia's simulation engine, with global effects e.g. fog, rain, snow, sleet, or nighttime as well as local effects. Some examples of global and local effects at a fixed visibility degredation are shown below
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/visibility_sim.png" class="img-fluid rounded z-depth-1" max-width="75%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/visibility_sim.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="DriveSim can simulate a variety of different conditions." %}
 </div>
 
 To get the ground truth visibility from global effect parameters, we setup an interface with simple track scene with an black object. The interface would binary search for where the user can detect the object
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/visibility_sim_interface.png" class="img-fluid rounded z-depth-1" max-width="75%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/visibility_sim_interface.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Interface to map global effect parameters to visibility distance" %}
 </div>
 
 One issue however, was there is a large sim2real gap. Forunately, other projects had shown mixing real data with DriveSim data resulted the model generalizing well to real world data features derived from DriveSim data. We decided to mix the DriveSim data with real visibility degraded data generated using the Atmospheric Scattering Model and estimating the depth maps via monocular depth estimation.
@@ -112,13 +112,13 @@ The advent of generative diffusion processes opened up new avenues to the data a
 I constructed a language model-based augmentation agent that performs rejection sampling of InstructPix2Pix [5]. Given an input image, the language model would propose edits that InstructPix2Pix carried out. InstructPix2Pix often fails to generate edits or corrupts the image— edited images below an LPIPs threshold are removed. The agent then proceeds recursively to the accepted edits. Optionally as a final step, the depth map of the input image is estimated and visibility degradation is applied using an atmospheric scattering model. The pipeline is illustrated below
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_agent_pipeline.png" class="img-fluid rounded z-depth-1" max-width="75%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_agent_pipeline.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Recursive branching combined with rejection sampling can be effective at producing diverse augmentations from a given image." %}
 </div>
 
 Here are some results of the agent, which is able to support a diverse array of quality edits far beyond what previous methods could achieve
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_agent.png" class="img-fluid rounded z-depth-1" max-width="90%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_agent.png" class="img-fluid rounded z-depth-1" max-width="90%" caption="InstructPix2Pix is good at producing structural edits." %}
 </div>
 
 In general, the performance is decent but there are several issues with InstructPix2Pix:
@@ -135,13 +135,13 @@ $$\nabla_x \mathcal{L}(x) \propto \mathbb{E}_{t, \epsilon}\left[ \epsilon_{\phi}
 where $$x_t$$ denotes the noised image and $$\epsilon$$ denotes the learned score function for $$p_{\phi}(x)$$. Below are some videos of domain translation in action for snow, nighttime, and rain. The edits are more realistic than InstructPix2Pix since Schrodinger Bridge-based methods are based on a notion of optimal transport between the conditional diffusion distributions.
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_sds.png" class="img-fluid rounded z-depth-1" max-width="90%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_sds.png" class="img-fluid rounded z-depth-1" max-width="90%" caption="The generated images are more realistic considering context compared to InstructPix2Pix edits." %}
 </div>
 
 We found that simply following a weighted combination of translation gradients can achieve compositional domain translation. The weights, however, may vary for different domains. As an example, suppose we are translating to both domains A and B.Tthe translation gradient for domain A may need to be weighted higher than the translation gradient for domain B for the final image to have A and B equally present. We propose to translate the image to domains A and B separately. Then, we dynamically adjust the weights during compositional domain translation optimization using an image similarity model such as CLIP by comparing the similarity of the currently optimized image to the separately translated images. Instead of weight adjustment, assuming there is a large number of optimization steps, each step we can step towards one domain, adjusting the target as needed. Below we show some examples of interpolations between night and snow with different weights.
 
 <div style="text-align: center;">
-    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_sds_compositional.png" class="img-fluid rounded z-depth-1" max-width="90%" %}
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_sds_compositional.png" class="img-fluid rounded z-depth-1" max-width="90%" caption="Compositional domain translation, one step per iteration." %}
 </div>
 
 And so far that's it. Thanks for reading and stay tuned for more updates on vision in degraded visibility conditions!
