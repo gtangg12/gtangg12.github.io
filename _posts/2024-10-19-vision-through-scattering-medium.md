@@ -130,7 +130,7 @@ where the last point is particularly important.
 
 This led me to an alternative method: Schrodinger Bridge-based methods [6], [7], which are well grounded in theory and result in minimal corruption. They only rely on the diffusion model $$p_{\phi}(x)$$ accurately modeling the source and target domain image distributions, compared to being finetuned on edits. In the case of [7] are defined as the diffusion model image distribution conditioned on keywords describing the source and target domains $$p_{\phi}(x, y_{\text{src}})$$, $$p_{\phi}(x, y_{\text{tgt}})$$. Given this setup, [7] provides a translation gradient to optimize the image $$x$$ from the source to the target distribution
 
-$$\nabla_x \mathcal{L}(x) \propto \mathbb{E}_{t, \epsilon}\left[ \epsilon_{\phi}(x_t, y_{\text{src}}, t) - \epsilon_{\phi}(x_t, y_{tgt}, t) \right]$$
+$$\nabla_x \mathcal{L}(x) \propto \mathbb{E}_{t, \epsilon}\left[ \epsilon_{\phi}(x_t, y_{\text{src}}, t) - \epsilon_{\phi}(x_t, y_{\text{tgt}}, t) \right]$$
 
 where $$x_t$$ denotes the noised image and $$\epsilon$$ denotes the learned score function for $$p_{\phi}(x)$$. Below are some videos of domain translation in action for snow, nighttime, and rain. The edits are more realistic than InstructPix2Pix since Schrodinger Bridge-based methods are based on a notion of optimal transport between the conditional diffusion distributions.
 
