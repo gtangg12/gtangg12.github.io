@@ -8,11 +8,11 @@ categories:
 featured: false
 ---
 
-I have been working on vision in degraded visibility conditions (fog, rain, snow, and nighttime) for a long time. Over the years I have made progress on many facets the problem, and many things in the field of vision has also changed along the way. I will outline some interesting aspects I've encountered and constructed in this post.
+I have been working on vision in degraded visibility conditions (fog, rain, snow, and nighttime) for a long time. Over the years I have made progress on many facets the problem, and many things in the field of vision has also changed along the way. I will outline some interesting aspects in this post.
 
 ## Introduction to Atmospheric Scattering
 
-To motivate the problem, consider the scenario where you are given a single foggy RGB image and you want to obtain the defogged image. Before we delve into the details, let's first understand the physics of fog. Fog is a weather phenomenon that occurs when the air is saturated with water vapor. The water droplets in the air scatter light (a phenomenon known as Mie scattering), which reduces the contrast and visibility of objects in the scene. Let $$L$$ be the luminance of an object under monochromatic light, $$L_0$$ the luminance at zero distance, $$\beta$$ Mie scattering parameter, and $$\alpha$$ background luminance (airlight). Both Koschmieder (1924) [1] and Duntley (1948) [2] show the scattering of light is modeled by the following equation (Atmospheric Scattering Model):
+To motivate the problem, consider the scenario where you are given a single foggy RGB image and you want to obtain the defogged image. Before we delve into the details, let's first understand the physics of fog. Fog is a weather phenomenon that occurs when the air is saturated with water vapor. The water droplets in the air scatter light (a phenomenon known as Mie scattering), which reduces the contrast and visibility of objects in the scene. Let $$L$$ be the luminance of an object under monochromatic light, $$L_0$$ the luminance at zero distance, $$\beta$$ Mie scattering parameter, and $$\alpha$$ background luminance (airlight). Both Koschmieder (1924) [1] and Duntley (1948) [2] showed the scattering of light is modeled by the following equation (Atmospheric Scattering Model):
 
 $$L = L_0 e^{-\beta d} + \alpha (1 - e^{-\beta d})$$
 
@@ -22,7 +22,7 @@ where $$d$$ is the distance between the observer and the object. This model is a
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/asm.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Atmospheric Scattering Model" %}
 </div>
 
-A short note, humans are trichromatic and have cones for short, medium, and long wavelengths that correspond to our perception of blue, green, and red primary colors (1931 CIE color matching). The luminance of each channel, $$y$$ is computed by integrated the respective color matching function against the irradiance, $$E$$, over all wavelengths.
+Humans are trichromatic and have cones for short, medium, and long wavelengths that correspond to our perception of blue, green, and red primary colors (1931 CIE color matching). The luminance of channel $$y$$ is computed by integrated the respective color matching function $$y(\lambda)$$ against the irradiance, $$E$$, over all wavelengths.
 
 <div style="text-align: center;">
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/cie.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Human sensativity to different wavelengths for each cone." %}
@@ -34,9 +34,9 @@ $$L_{y} = \int_{0}^{\infty} y(\lambda) E(\lambda) d\lambda$$
 
 Mie scattering is independent of wavelengths, that is with scattering, the luminance of each channel is given by the Atmospheric Scattering Model as
 
-$$L_{y} = \int_{0}^{\infty} y(\lambda) e^{-\beta d} E(\lambda) d\lambda + \alpha y(\lambda) (1 - e^{-\beta d}) E(\lambda) d\lambda$$
+$$L_{y} = \int_{0}^{\infty} y(\lambda) \left[ E(\lambda) e^{-\beta d} + \alpha (1 - e^{-\beta d}) \right] d\lambda$$
 
-From an imaging perspective, for each channel we have
+As the color matching function integrates to 1, for each of the RGB channels of the image we have
 
 $$I(x) = J(x) t(x) + \alpha(1 - t(x))$$
 
@@ -64,7 +64,7 @@ $$ C = C_{0}e^{-\beta d} $$
 
 where $$C$$ is defined as the visual contrast. The meteorological visibility distance is defined as the distance at which the visual contrast is reduced to a certain threshold, usually 0.05 of a black object ($$L_{0} = 0$$), which is approximately
 
-$$d_{m} = \frac{\ln(0.05)}{\beta}$$
+$$d_{m} = -\frac{\ln(0.05)}{\beta}$$
 
 It is important to note visibility distance degredation is a global effect. This means local effects by lamppost glare, puddle reflections, vehicle spray do not contribute to the visibility distance. This does not mean we do not consider them; on the contrary, our model must learn how to recongize and ignore local effects. The team decided to train a CNN to regress visibility distance from synthetic data, as real images in degraded conditions were sparse due to collection bias.
 
@@ -86,7 +86,7 @@ To get the ground truth visibility from global effect parameters, we setup an in
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/visibility_sim_interface.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Interface to map global effect parameters to visibility distance" %}
 </div>
 
-One issue however, was there is a large sim2real gap. Forunately, other projects had shown mixing real data with DriveSim data resulted the model generalizing well to real world data features derived from DriveSim data. We decided to mix the DriveSim data with real visibility degraded data generated using the Atmospheric Scattering Model and estimating the depth maps via monocular depth estimation.
+One issue however, was there is a large sim2real gap. Forunately, other projects had shown mixing real data with DriveSim data resulted the model generalizing well to real world data features. We decided to mix the DriveSim data with real visibility degraded data generated using the Atmospheric Scattering Model, estimating the depth maps via monocular depth estimation.
 
 We show two examples of real foggy images collected from real life and a visibility degraded image generated from a real clear image below
 <div style="text-align: center;">
@@ -138,7 +138,7 @@ where $$x_t$$ denotes the noised image and $$\epsilon$$ denotes the learned scor
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_sds.png" class="img-fluid rounded z-depth-1" max-width="90%" caption="The generated images are more realistic considering context compared to InstructPix2Pix edits." %}
 </div>
 
-We found that simply following a weighted combination of translation gradients can achieve compositional domain translation. The weights, however, may vary for different domains. As an example, suppose we are translating to both domains A and B.Tthe translation gradient for domain A may need to be weighted higher than the translation gradient for domain B for the final image to have A and B equally present. We propose to translate the image to domains A and B separately. Then, we dynamically adjust the weights during compositional domain translation optimization using an image similarity model such as CLIP by comparing the similarity of the currently optimized image to the separately translated images. Instead of weight adjustment, assuming there is a large number of optimization steps, each step we can step towards one domain, adjusting the target as needed. Below we show some examples of interpolations between night and snow with different weights.
+Simply changing the target domain's text conditioning is not stable nor controllable. We found that simply following a linear combination of translation gradients between well defined domains can achieve compositional domain translation. The weights, however, may not be proportionally to the desired influence of the domain. As an example, suppose we are translating to both domains A and B. The translation gradient for domain A may need to be weighted higher than the translation gradient for domain B for the final image to have A and B equally present. We propose to translate the image to domains A and B separately. Then, we dynamically adjust the weights during compositional domain translation optimization using an image similarity model such as CLIP by comparing the similarity of the currently optimized image to the separately translated images. Instead of weight adjustment, assuming there is a large number of optimization steps, each step we can step towards one domain, adjusting the target as needed. Below we show some examples of interpolations between night and snow with different weights.
 
 <div style="text-align: center;">
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-in-fog/augmentation_sds_compositional.png" class="img-fluid rounded z-depth-1" max-width="90%" caption="Compositional domain translation, one step per iteration." %}
