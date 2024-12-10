@@ -173,11 +173,11 @@ $$
 
 where $$\mathbf{f}$$ and $$g$$ refer to the drift and diffusion terms in the VE SDE and has marginals $$p_t(\mathbf{x}) = \Phi_t(\mathbf{x})\hat{\Phi}_t(\mathbf{x})$$ where $$\Phi_t(\mathbf{x})$$ and $$\hat{\Phi}_t(\mathbf{x})$$ are called *Schrodinger factors* the solution to certain PDEs involving $$\mathbf{f}$$ and $$g$$ and the boundary conditions $$p_0$$ and $$p_1$$ [9].
 
-Let $$\mathbf{z}_t = g(t)\nabla_{\mathbf{x}}\log \Phi_t(\mathbf{x})$$ and $$\hat{\mathbf{z}}_t = g(t)\nabla_{\mathbf{x}}\log \hat{\Phi}_t(\mathbf{x})$$. Wen $$p_0 = p_{\text{data}}$$ and $$p_1 = p_{\text{prior}}$$, solving for the Schrodinger factors yields
+Let $$\mathbf{z}_t = g(t)\nabla_{\mathbf{x}}\log \Phi_t(\mathbf{x})$$ and $$\hat{\mathbf{z}}_t = g(t)\nabla_{\mathbf{x}}\log \hat{\Phi}_t(\mathbf{x})$$. Wen $$p_0 = p_{\text{data}}$$ and $$p_1 = p_{\text{prior}}$$, the Schrodinger factors are
 
 $$(\mathbf{z}_t, \hat{\mathbf{z}}_t) = (0, g(t)\nabla_{\mathbf{x}} \log p_t(\mathbf{x}))$$
 
-which is exactly the SGM. Each SBP SDE also has a corresponding ODE which has the same marginals $$p_t$$ and thus is also (nontrivially) a solution.
+which is exactly the SGM [9]. Each SBP SDE also has a corresponding ODE is a solution to the SBP and has the same marginals $$p_t$$[9]. Thus it also satisfies the optimal transport criteria.
 
 $$d\mathbf{x} = \left[ \mathbf{f}(\mathbf{x}, t) + g(t)\mathbf{\mathbf{z}_t} - \frac{1}{2}g(t)\left( {\mathbf{z}_t + \hat{\mathbf{z}}_t} \right) \right]dt$$
 
@@ -185,7 +185,7 @@ Substituting $$(\mathbf{z}_t, \hat{\mathbf{z}}_t)$$ from above, we get the proba
 
 $$d\mathbf{x} = \left[ \mathbf{f}(\mathbf{x}, t) - \frac{1}{2}g(t)^2\nabla_{\mathbf{x}}\log p_t(\mathbf{x}) \right]dt$$
 
-which has the same marginals as the SGM SDE and is equivalent to a DDIM. Dual Diffusion Implicit Bridges (DDIB) [6] concatenates two DDIMs for unpaired image-to-image translation, which forms image to latent to image concatenation of optimal transport. This empirically works well. Since DDIMs are deterministic and reversible, DDIB guaruntee cycle consistency up to ODE discretization error.
+which has the same marginals as the VE SDE and is equivalent to a DDIM. Dual Diffusion Implicit Bridges (DDIB) [6] concatenates two DDIMs for unpaired image-to-image translation, which forms image to latent to image concatenation of optimal transport. This empirically works well. Since DDIMs are deterministic and reversible, DDIB guaruntee cycle consistency up to ODE discretization error.
 
 <div style="text-align: center;">
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-through-scattering-medium/ddib.png" class="img-fluid rounded z-depth-1" max-width="90%" caption="Dual Diffusion Implicit Bridge." %}
@@ -195,7 +195,7 @@ Suppose our distributions are text conditioned distributions $$p(\mathbf{x}\vert
 
 $$\epsilon_{\text{SBP}}^* \cong \text{ODESolve}(\mathbf{x}_{\text{src}}, \mathbf{x}_T, p(\mathbf{x}\vert\mathbf{y}_{\text{src}})) \rightarrow \text{ODESolve}(\mathbf{x}_T, \mathbf{x}_{\text{tgt}}, p(\mathbf{x}\vert\mathbf{y}_{\text{tgt}}))$$
 
-One issue with DDIBs is they are slow as $$p_1$$ must be the prior distribution for the VE SDE i.e. Gaussian, which means there are two full DDIM evaluations per translation. Instead, [7] proposes a one step linear approximation to DDIB as the difference of scores
+One issue with DDIBs is they are slow as $$p_1$$ must be the (DDIM reparametrized) prior distribution for the VE SDE i.e. fixed variance Gaussian, which means there are two full DDIM evaluations per translation. Instead, [7] proposes a one step linear approximation to DDIB as the difference of scores
 
 $$\epsilon_{\text{SBP}} \cong \epsilon(\mathbf{x}_t, \mathbf{y}_{\text{tgt}}, t) - \epsilon(\mathbf{x}_t, \mathbf{y}_{\text{src}}, t)$$
 
