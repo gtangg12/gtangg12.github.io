@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Ocean Image formation
+title: Ocean Image Formation
 date: 2024-11-30 12:00:00
 description: How can we model light transport in the ocean?
 tags: computer-vision computer-graphics physical-simulation
@@ -12,7 +12,7 @@ The problem of light transport on land is relatively simple and well-modeled. Ho
 
 I included a juypter notebook here that can be run as you read along [here](https://github.com/gtangg12/image-restoration/blob/main/notebooks/corruption_ocean.ipynb)
 
-## Wave formation
+## Wave Formation
 We first describe how waves are formed in the ocean. Specifically, consider a $$L_x$$ by $$L_z$$ (m) size patch modeled by a grid at resoluion $$N$$ x $$M$$. Each entry in the grid contains at time $$t$$ a ocean surface height value $$h(x, z, t)$$, a unit normal $$n(x, z, t)$$, and a position $$r(x, z, t)$$. The movie Titanic employed the Fast Fourier Transform (FFT) method to generate waves described in [1]. Specifically the ocean surface height $$h(x, z, t)$$ is modeled as a sum of sinusoids with random phases and amplitudes, which can be expressed in the Fourier domain as
 
 $$h(x, z, t) = \sum_{n=0}^{N-1}\sum_{m=0}^{M-1} \tilde{h}(n, m, t) e^{2\pi i\left(\frac{nx}{L_x} + \frac{mz}{L_z}\right)}$$

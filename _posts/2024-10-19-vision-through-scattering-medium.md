@@ -36,11 +36,11 @@ Mie scattering is independent of wavelengths, that is with scattering, the lumin
 
 $$L_{y} = \int_{0}^{\infty} y(\lambda) \left[ E(\lambda) e^{-\beta d} + \alpha (1 - e^{-\beta d}) \right] d\lambda$$
 
-As the color matching function integrates to 1, for each of the RGB channels of the image we have
+As the color matching functions are normalized to integrate to the same constant, and the transformation from CIE RGB to standard RGB colorspace is linear, for each of the RGB channels of the image we have
 
 $$I(x) = J(x) t(x) + \alpha(1 - t(x))$$
 
-where $$I(x)$$ is the observed luminance at pixel $$x$$, $$J(x)$$ is the scene luminance, $$t(x) = e^{-\beta d(x)}$$ is the transmission map, and $$d(x)$$ the depth map. With some algebra, we can see to estimate the scene radiance $$J(x)$$ we need to estimate the transmission map $$t(x)$$.
+where $$I(x)$$ is the observed luminance at pixel $$x$$, $$J(x)$$ is the scene luminance, $$t(x) = e^{-\beta d(x)}$$ is the transmission map, $$d(x)$$ the depth map, and we absorb the normalization constant into $$\alpha$$. With some algebra, we can see to estimate the scene radiance $$J(x)$$ we need to estimate the transmission map $$t(x)$$.
 
 <div style="text-align: center;">
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-through-scattering-medium/asm_examples.png" class="img-fluid rounded z-depth-1" max-width="75%" caption="Visibility Degredation for varying levels of parameters. Figure credits to Neal Bayya" %}
@@ -144,6 +144,73 @@ Simply changing the target domain's text conditioning is not stable nor controll
     {% include figure.liquid loading="eager" path="assets/img/blog/vision-through-scattering-medium/augmentation_sds_compositional.png" class="img-fluid rounded z-depth-1" max-width="90%" caption="Compositional domain translation, one step per iteration." %}
 </div>
 
+#### Schrodinger Bridge-based Methods
+The theory behind Schrodinger Bridge-based methods is quite rich. Let $$\Omega = \mathbb{C}([0, 1], \mathbb{R}^n)$$ denote the space of *continuous* paths over $$[0, 1]$$. Given $$W$$, a reference probability measure on $$\Omega$$, the Schrodinger Bridge Problem (SBP) seeks to find a measure $$P_{SBP}$$ such that
+
+$$P_{SBP} = \arg\min_{P} D_{KL}(P||W)$$
+
+for $$P \in D(p_0, p_1)$$, where $$D$$ denotes the collection of measures over $$\mathbb{C}$$ with marginals $$p_0$$ and $$p_1$$. 
+
+SBP has connections to diffusion processes. When $$W$$ results from the forward SDE of the variance exploding (VE) score generative model (SGM) that models $$p_{\text{data}}$$ and results in $$p_{\text{prior}}$$, SBP can be shown to produce solutions to an entropy-regularized Monge-Kantorovich (distribution mass) optimal transport problem between $$p_0$$ and $$p_1$$ [8]. In fact this shows that SGM themselves are solutions to entropy-regularized optimal transport with 0 KL divergence since we can set $$p_0 = p_{\text{data}}$$ and $$p_1 = p_{\text{prior}}$$. Note any VP SDE can be reparmetrized as a VE SDE.
+
+To see this more clearly, note we can write the VE SDE forward and reverse processes as
+
+$$
+\begin{align*}
+    d\mathbf{x} &= \mathbf{f}(\mathbf{x}, t) \, dt + g(t) \, d\mathbf{w}, \\
+    d\mathbf{x} &= \left[\mathbf{f}(\mathbf{x}, t) - g(t)^2 \nabla_{\mathbf{x}} \log p_t(\mathbf{x}) \right] \, dt + g(t) \, d\mathbf{w}
+\end{align*}
+$$
+
+and SBP solution has forward and reverse processes of the form
+
+$$
+\begin{align*}
+    d\mathbf{x} &= \left[\mathbf{f}(\mathbf{x}, t) + g(t)^2 \nabla_{\mathbf{x}} \log \Phi_t(\mathbf{x}) \right] \, dt + g(t) \, d\mathbf{w}, \\
+    d\mathbf{x} &= \left[\mathbf{f}(\mathbf{x}, t) - g(t)^2 \nabla_{\mathbf{x}} \log \hat{\Phi}_t(\mathbf{x}) \right] \, dt + g(t) \, d\mathbf{w}
+\end{align*}
+$$
+
+where $$\mathbf{f}$$ and $$g$$ refer to the drift and diffusion terms in the VE SDE and has marginals $$p_t(\mathbf{x}) = \Phi_t(\mathbf{x})\hat{\Phi}_t(\mathbf{x})$$ where $$\Phi_t(\mathbf{x})$$ and $$\hat{\Phi}_t(\mathbf{x})$$ are called *Schrodinger factors* the solution to certain PDEs involving $$\mathbf{f}$$ and $$g$$ and the boundary conditions $$p_0$$ and $$p_1$$ [9].
+
+Let $$\mathbf{z}_t = g(t)\nabla_{\mathbf{x}}\log \Phi_t(\mathbf{x})$$ and $$\hat{\mathbf{z}}_t = g(t)\nabla_{\mathbf{x}}\log \hat{\Phi}_t(\mathbf{x})$$. Wen $$p_0 = p_{\text{data}}$$ and $$p_1 = p_{\text{prior}}$$, solving for the Schrodinger factors yields
+
+$$(\mathbf{z}_t, \hat{\mathbf{z}}_t) = (0, g(t)\nabla_{\mathbf{x}} \log p_t(\mathbf{x}))$$
+
+which is exactly the SGM. Each SBP SDE also has a corresponding ODE which has the same marginals $$p_t$$ and thus is also a solution.
+
+$$d\mathbf{x} = \left[ \mathbf{f}(\mathbf{x}, t) + g(t)\mathbf{\mathbf{z}_t} - \frac{1}{2}\left( g(t){\mathbf{z}_t + \hat{\mathbf{z}}_t} \right) \right]dt$$
+
+Substituting $$(\mathbf{z}_t, \hat{\mathbf{z}}_t)$$ from above, we get the probabability flow ODE for the SGM
+
+$$d\mathbf{x} = \left[ \mathbf{f}(\mathbf{x}, t) - \frac{1}{2}g(t)^2\nabla_{\mathbf{x}}\log p_t(\mathbf{x}) \right]dt$$
+
+which has the same marginals as the SGM SDE and is equivalent to a DDIM. Dual Diffusion Implicit Bridges (DDIB) [6] concatenates two DDIMs for unpaired image-to-image translation, which forms image to latent to image concatenation of optimal transport. This empirically works well. Since DDIMs are deterministic and reversible, DDIB guaruntee cycle consistency up to ODE discretization error.
+
+<div style="text-align: center;">
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-through-scattering-medium/ddib.png" class="img-fluid rounded z-depth-1" max-width="90%" caption="Dual Diffusion Implicit Bridge." %}
+</div>
+
+Suppose our distributions are text conditioned distributions $$p(\mathbf{x}\vert\mathbf{y})$$ with score $$\epsilon(\mathbf{x}_t, \mathbf{y}, t)$$. The DDIB translation is expressed as
+
+$$\epsilon_{\text{SBP}}^* \cong \text{ODESolve}(\mathbf{x}_{\text{src}}, \mathbf{x}_T, p(\mathbf{x}\vert\mathbf{y}_{\text{src}})) \rightarrow \text{ODESolve}(\mathbf{x}_T, \mathbf{x}_{\text{tgt}}, p(\mathbf{x}\vert\mathbf{y}_{\text{tgt}}))$$
+
+One issue with DDIBs is they are slow as $$p_1$$ must be the prior distribution for the VE SDE i.e. Gaussian, which means there are two full DDIM evaluations per translation. Instead, [7] proposes a one step linear approximation to DDIB as the difference of scores
+
+$$\epsilon_{\text{SBP}} \cong \epsilon(\mathbf{x}_t, \mathbf{y}_{\text{tgt}}, t) - \epsilon(\mathbf{x}_t, \mathbf{y}_{\text{src}}, t)$$
+
+The figure below shows the linear approximation compared to full DDIB.
+
+<div style="text-align: center;">
+    {% include figure.liquid loading="eager" path="assets/img/blog/vision-through-scattering-medium/ddib_linear.png" class="img-fluid rounded z-depth-1" max-width="90%" caption="Linear approximation for DDIB." %}
+</div>
+
+In practice, we take the translation gradient as proportional to
+
+$$\mathbb{E}_{t, \epsilon}\left[ \epsilon_{\phi}(x_t, y_{\text{src}}, t) - \epsilon_{\phi}(x_t, y_{\text{tgt}}, t) \right]$$
+
+which is the gradient we saw above. This gradient can be applied less often than the number of UNet evaluations in DDIB and also enables compositional domain translation as shown above.
+
 And so far that's it. Thanks for reading and stay tuned for more updates on vision in degraded visibility conditions!
 
 ## References
@@ -154,4 +221,6 @@ And so far that's it. Thanks for reading and stay tuned for more updates on visi
 [4] Single Image Haze Removal Using Dark Channel Prior, 2009 \\
 [5] InstructPix2Pix: Learning to Follow Image Editing Instructions, 2022 \\
 [6] Dual Diffusion Implicit Bridges for Image-to-Image Translation, 2023 \\
-[7] Rethinking Score Distillation as a Bridge Between Image Distributions, 2024
+[7] Rethinking Score Distillation as a Bridge Between Image Distributions, 2024 \\
+[8] Diffusion Schrödinger Bridge with Applications to Score-Based Generative Modeling, 2021 \\
+[9] Likelihood Training of Schrödinger Bridge using Forward-Backward SDEs Theory, 2022
