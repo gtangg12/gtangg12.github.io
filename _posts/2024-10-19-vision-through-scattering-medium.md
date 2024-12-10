@@ -179,7 +179,7 @@ $$(\mathbf{z}_t, \hat{\mathbf{z}}_t) = (0, g(t)\nabla_{\mathbf{x}} \log p_t(\mat
 
 which is exactly the SGM. Each SBP SDE also has a corresponding ODE which has the same marginals $$p_t$$ and thus is also a solution.
 
-$$d\mathbf{x} = \left[ \mathbf{f}(\mathbf{x}, t) + g(t)\mathbf{\mathbf{z}_t} - \frac{1}{2}\left( g(t){\mathbf{z}_t + \hat{\mathbf{z}}_t} \right) \right]dt$$
+$$d\mathbf{x} = \left[ \mathbf{f}(\mathbf{x}, t) + g(t)\mathbf{\mathbf{z}_t} - \frac{1}{2}g(t)\left( {\mathbf{z}_t + \hat{\mathbf{z}}_t} \right) \right]dt$$
 
 Substituting $$(\mathbf{z}_t, \hat{\mathbf{z}}_t)$$ from above, we get the probabability flow ODE for the SGM
 
