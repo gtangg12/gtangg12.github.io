@@ -177,7 +177,7 @@ Let $$\mathbf{z}_t = g(t)\nabla_{\mathbf{x}}\log \Phi_t(\mathbf{x})$$ and $$\hat
 
 $$(\mathbf{z}_t, \hat{\mathbf{z}}_t) = (0, g(t)\nabla_{\mathbf{x}} \log p_t(\mathbf{x}))$$
 
-which is exactly the SGM [9]. Each SBP SDE also has a corresponding ODE is a solution to the SBP and has the same marginals $$p_t$$[9]. Thus it also satisfies the optimal transport criteria.
+which is exactly the SGM [9]. Each SBP SDE also has a corresponding ODE is a solution to the SBP and has the same marginals $$p_t$$ [9]. Thus it also satisfies the optimal transport criteria.
 
 $$d\mathbf{x} = \left[ \mathbf{f}(\mathbf{x}, t) + g(t)\mathbf{\mathbf{z}_t} - \frac{1}{2}g(t)\left( {\mathbf{z}_t + \hat{\mathbf{z}}_t} \right) \right]dt$$
 
